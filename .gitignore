@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# Streamlit
+.streamlit/
+
+# PyCharm
+.idea/
+
+# OS files
+.DS_Store
+
+# Poetry
+poetry.lock
+poetry.toml
