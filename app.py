@@ -66,7 +66,7 @@ def apply_filters(df, selected_year, selected_genre, price_range):
         filtered = filtered[filtered["release_year"] == selected_year]
 
     if selected_genre != "ALL":
-        filtered_df = [filtered_df["genres"].apply(lambda g: selected_genre in g)]
+        filtered= [filtered["genres"].apply(lambda g: selected_genre in g)]
 
     filtered = filtered[
         filtered["price"].between(price_range[0], price_range[1])]
