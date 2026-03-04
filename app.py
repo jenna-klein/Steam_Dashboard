@@ -5,21 +5,15 @@ import plotly.express as px
 import os
 import re
 
-
 # PAGE CONFIG
 st.set_page_config(
     page_title="Steam Indie Market Dashboard",
     layout="wide",
     initial_sidebar_state="expanded")
 
-
 # PATH HANDLING
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "steam_clean_finished.csv")
-
-st.write("Looking for CSV at:", DATA_PATH)
-st.write("File exists:", os.path.exists(DATA_PATH))
-
 
 # LOAD + CLEAN DATA
 @st.cache_data
@@ -48,13 +42,15 @@ def load_and_clean_data(path: str) -> pd.DataFrame:
     # RECOMMENDATION RATE
     if "positive_ratings" in df.columns and "negative_ratings" in df.columns:
         df["total_reviews"] = df["positive_ratings"] + df["negative_ratings"]
+        df["recommendations"] = df["total_reviews"]
         df["recommendation_rate"] = (
-            df["positive_ratings"] / df["total_reviews"].replace(0, np.nan)
-        )
+            df["positive_ratings"] / df["total_reviews"].replace(0, np.nan))
     else:
+        df["recommendations"] = np.nan
         df["recommendation_rate"] = np.nan
 
     return df
+
 
 df = load_and_clean_data(DATA_PATH)
 
@@ -77,22 +73,17 @@ def apply_filters(df, selected_year, selected_genre, price_range):
 # SIDEBAR FILTERS
 st.sidebar.header("Filters")
 
-# Year dropdown
 year_options = ["ALL"] + sorted(df["release_year"].dropna().unique().tolist())
 selected_year = st.sidebar.selectbox("Select Year", year_options)
 
-# Genre dropdown
 genre_options = ["ALL"] + sorted({g for sublist in df["genres"] for g in sublist})
 selected_genre = st.sidebar.selectbox("Select Genre", genre_options)
 
-# Price slider
 min_price, max_price = float(df["price"].min()), float(df["price"].max())
 selected_price = st.sidebar.slider(
     "Price Range", min_price, max_price, (min_price, max_price))
 
-# Apply filters
 filtered_df = apply_filters(df, selected_year, selected_genre, selected_price)
-
 
 # KPI FUNCTIONS
 def compute_indie_market_share(filtered_df):
@@ -100,11 +91,9 @@ def compute_indie_market_share(filtered_df):
     indie = filtered_df["is_indie"].sum()
     return (indie / total * 100) if total > 0 else 0
 
-
 def compute_median_indie_price(filtered_df):
     indie_prices = filtered_df[filtered_df["is_indie"] == True]["price"]
     return indie_prices.median() if len(indie_prices) > 0 else 0
-
 
 def compute_fastest_growing_genre(filtered_df):
     if filtered_df["release_year"].nunique() < 2:
@@ -113,7 +102,7 @@ def compute_fastest_growing_genre(filtered_df):
     latest_year = filtered_df["release_year"].max()
     prev_year = latest_year - 1
 
-    exploded = df.explode("genres")
+    exploded = filtered_df.explode("genres")
 
     current = exploded[exploded["release_year"] == latest_year]["genres"].value_counts()
     previous = exploded[exploded["release_year"] == prev_year]["genres"].value_counts()
@@ -125,8 +114,7 @@ def compute_fastest_growing_genre(filtered_df):
 
     growth_df["growth"] = (
         (growth_df["current"] - growth_df["previous"]) /
-        growth_df["previous"].replace(0, np.nan)
-    )
+        growth_df["previous"].replace(0, np.nan))
 
     if growth_df["growth"].dropna().empty:
         return None, None
@@ -160,17 +148,14 @@ with kpi3:
 st.markdown("---")
 
 
-# VISUALIZATION 1 -- Releases by Month
+# VISUALIZATION 1 — Monthly Releases (Filtered)
 st.subheader("Releases by Month")
 
-df['release_date'] = pd.to_datetime(df['release_date'], errors='coerce')
-
 df_grouped = (
-    df
+    filtered_df
     .groupby(pd.Grouper(key='release_date', freq='M'))
     .size()
-    .reset_index(name='count')
-)
+    .reset_index(name='count'))
 
 df_grouped['year'] = df_grouped['release_date'].dt.year
 
@@ -179,28 +164,23 @@ fig = px.bar(
     x='release_date',
     y='count',
     color='year',
-    title='Monthly Release Counts by Year'
-)
+    title='Monthly Release Counts by Year')
+
+fig.update_traces(
+    hovertemplate="%{x|%B %Y}<br>Releases: %{y}")
 
 fig.update_xaxes(
     dtick="M12",
-    tickformat="%Y"
-)
-
-fig.update_traces(
-    hovertemplate="%{x|%B %Y}<br>Releases: %{y}"
-)
+    tickformat="%Y")
 
 st.plotly_chart(fig, use_container_width=True)
 
 
-# VISUALIZATION 2 -- Top Genres
+# VISUALIZATION 2 — Top Genres (Filtered)
 st.subheader("Top 10 Genres Overall")
 
-# Explode genres
-genre_exploded = df.explode("genres")
+genre_exploded = filtered_df.explode("genres")
 
-# Count genres
 genre_counts = (
     genre_exploded["genres"]
     .value_counts()
@@ -214,8 +194,7 @@ fig_genres = px.bar(
     x="genre",
     y="count",
     title="Top 10 Most Common Genres",
-    text="count"
-)
+    text="count")
 
 fig_genres.update_layout(xaxis_title="Genre", yaxis_title="Number of Games")
 fig_genres.update_traces(textposition="outside")
@@ -223,28 +202,26 @@ fig_genres.update_traces(textposition="outside")
 st.plotly_chart(fig_genres, use_container_width=True)
 
 
-# VISUALIZATION 3 -- Indie Market Share Over Time
+# VISUALIZATION 3 — Indie Market Share Over Time (Filtered)
 st.subheader("Indie Market Share Over Time")
 
-yearly = df.groupby("release_year")["is_indie"].mean().reset_index()
+yearly = filtered_df.groupby("release_year")["is_indie"].mean().reset_index()
 yearly["is_indie"] *= 100
 
 fig1 = px.line(
     yearly,
     x="release_year",
     y="is_indie",
-    title="Indie Market Share (%) by Year"
-)
+    title="Indie Market Share (%) by Year")
 
 fig1.update_xaxes(
-    type="category",   # clean categorical years
-    tickangle=0
-)
+    type="category",
+    tickangle=0)
 
 st.plotly_chart(fig1, use_container_width=True)
 
 
-# VISUALIZATION 4 -- Price vs Recommendation Rate
+# VISUALIZATION 4 — Price vs Recommendations (Filtered)
 st.subheader("Price vs Recommendation Rate")
 
 games_with_recs = filtered_df[filtered_df["recommendations"] > 0]
@@ -268,10 +245,8 @@ else:
             "is_indie": "Indie Game"
         },
         color_discrete_map={
-            True: "#1f77b4",   # Indie = blue
-            False: "#b0b0b0"   # Non‑indie = gray
-        }
-    )
+            True: "#1f77b4",
+            False: "#b0b0b0"})
 
     fig_price_rec.update_yaxes(type="log")
 
@@ -279,8 +254,7 @@ else:
         xaxis_title="Price ($)",
         yaxis_title="Recommendations (log scale)",
         legend_title="Is Indie:",
-        height=600
-    )
+        height=600)
 
     st.plotly_chart(fig_price_rec, use_container_width=True)
 
