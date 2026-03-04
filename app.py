@@ -259,6 +259,13 @@ st.plotly_chart(fig1, use_container_width=True)
 # VISUALIZATION 4 — Price vs Recommendation Count (log scale)
 st.subheader("Price vs Recommendation Count")
 
+# Define view_mode so all visualizations can use it
+view_mode = st.radio(
+    "View Mode",
+    ["Highlight Indie", "Indie Only", "Non‑Indie Only"],
+    horizontal=True
+)
+
 # --- 1. Clean and prepare data ---
 scatter_df = filtered_df.copy()
 
