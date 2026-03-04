@@ -94,9 +94,15 @@ selected_year = st.sidebar.selectbox("Select Year", year_options)
 genre_options = ["ALL"] + sorted({g for sublist in df["genres"] for g in sublist})
 selected_genre = st.sidebar.selectbox("Select Genre", genre_options)
 
-min_price, max_price = float(df["price"].min()), float(df["price"].max())
+# Cap price filter at $100 to match visualization
+min_price = 0
+max_price = 100
+
 selected_price = st.sidebar.slider(
-    "Price Range", min_price, max_price, (min_price, max_price))
+    "Price Range ($)",
+    min_price,
+    max_price,
+    (min_price, max_price))
 
 filtered_df = apply_filters(df, selected_year, selected_genre, selected_price)
 
