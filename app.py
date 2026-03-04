@@ -70,6 +70,9 @@ df = load_and_clean_data(DATA_PATH)
 def apply_filters(df, selected_year, selected_genre, price_range):
     filtered = df.copy()
 
+    # Cap prices before filtering
+    filtered["price"] = filtered["price"].clip(upper=100)
+
     if selected_year != "ALL":
         filtered = filtered[filtered["release_year"] == selected_year]
 
