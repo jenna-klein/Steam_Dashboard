@@ -95,22 +95,22 @@ filtered_df = apply_filters(df, selected_year, selected_genre, selected_price)
 
 
 # KPI FUNCTIONS
-def compute_indie_market_share(df):
-    total = len(df)
-    indie = df["is_indie"].sum()
+def compute_indie_market_share(filtered_df):
+    total = len(filtered_df)
+    indie = filtered_df["is_indie"].sum()
     return (indie / total * 100) if total > 0 else 0
 
 
-def compute_median_indie_price(df):
-    indie_prices = df[df["is_indie"] == True]["price"]
+def compute_median_indie_price(filtered_df):
+    indie_prices = filtered_df[filtered_df["is_indie"] == True]["price"]
     return indie_prices.median() if len(indie_prices) > 0 else 0
 
 
-def compute_fastest_growing_genre(df):
-    if df["release_year"].nunique() < 2:
+def compute_fastest_growing_genre(filtered_df):
+    if filtered_df["release_year"].nunique() < 2:
         return None, None
 
-    latest_year = df["release_year"].max()
+    latest_year = filtered_df["release_year"].max()
     prev_year = latest_year - 1
 
     exploded = df.explode("genres")
