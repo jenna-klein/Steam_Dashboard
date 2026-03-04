@@ -259,19 +259,21 @@ st.plotly_chart(fig1, use_container_width=True)
 # VISUALIZATION 4 — Price vs Recommendation Count (log scale)
 st.subheader("Price vs Recommendation Count")
 
-# Filter to games with at least 1 recommendation
-scatter_df = filtered_df[filtered_df["recommendations"] > 0].copy()
+# Add this line
+view_mode = st.radio(
+    "View Mode",
+    ["Highlight Indie", "Indie Only", "Non‑Indie Only"],
+    horizontal=True
+)
 
-# Cap price at $100
+scatter_df = filtered_df[filtered_df["recommendations"] > 0].copy()
 scatter_df["price"] = scatter_df["price"].clip(upper=100)
 
-# Apply indie toggle
 if view_mode == "Indie Only":
     scatter_df = scatter_df[scatter_df["is_indie"] == True]
 elif view_mode == "Non‑Indie Only":
     scatter_df = scatter_df[scatter_df["is_indie"] == False]
 
-# Build scatterplot
 fig_price_rec = px.scatter(
     scatter_df,
     x="price",
@@ -297,16 +299,8 @@ fig_price_rec = px.scatter(
     }
 )
 
-# Log scale for recommendations
 fig_price_rec.update_yaxes(type="log")
-
-# Layout polish
-fig_price_rec.update_layout(
-    xaxis_title="Price ($, capped at 100)",
-    yaxis_title="Recommendation Count (log scale)",
-    legend_title="Is Indie:",
-    height=750
-)
+fig_price_rec.update_layout(height=750)
 
 st.plotly_chart(fig_price_rec, use_container_width=True)
 
