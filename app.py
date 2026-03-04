@@ -279,11 +279,7 @@ if view_mode == "Indie Only":
 elif view_mode == "Non‑Indie Only":
     genre_price_df = genre_price_df[genre_price_df["is_indie"] == False]
 
-# Horizontal jitter (correct for categorical x-axis)
-np.random.seed(42)
-genre_price_df["jitter"] = np.random.uniform(-0.25, 0.25, size=len(genre_price_df))
-
-# Sort genres by median price (cleaner visual)
+# Sort genres by median price
 genre_order = (
     genre_price_df.groupby("genres")["price"]
     .median()
@@ -291,17 +287,30 @@ genre_order = (
     .index.tolist()
 )
 
+# Convert genres to ordered categorical codes
+genre_price_df["genre_code"] = pd.Categorical(
+    genre_price_df["genres"],
+    categories=genre_order,
+    ordered=True
+).codes
+
+# Add horizontal jitter
+np.random.seed(42)
+genre_price_df["jitter"] = np.random.uniform(-0.25, 0.25, size=len(genre_price_df))
+
+# Final jittered x-axis
+genre_price_df["x_jittered"] = genre_price_df["genre_code"] + genre_price_df["jitter"]
+
 if len(genre_price_df) == 0:
     st.warning("No games available for the selected filters.")
 else:
     fig_price_genre = px.scatter(
         genre_price_df,
-        x="genres",
+        x="x_jittered",
         y="price",
         color="is_indie" if view_mode == "Highlight Indie" else None,
         opacity=0.65,
         title="Price vs Genre",
-        category_orders={"genres": genre_order},
         labels={
             "price": "Price ($, capped at 100)",
             "genres": "Genre",
@@ -319,14 +328,15 @@ else:
         }
     )
 
-    # Apply horizontal jitter
-    fig_price_genre.update_traces(
-        marker=dict(size=8),
-        x=genre_price_df["genres"] + genre_price_df["jitter"]
+    # Replace numeric ticks with genre names
+    fig_price_genre.update_xaxes(
+        tickmode="array",
+        tickvals=list(range(len(genre_order))),
+        ticktext=genre_order,
+        title="Genre"
     )
 
     fig_price_genre.update_layout(
-        xaxis_title="Genre",
         yaxis_title="Price ($, capped at 100)",
         legend_title="Is Indie:",
         height=750
