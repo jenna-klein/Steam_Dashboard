@@ -256,8 +256,8 @@ fig1.update_xaxes(
 st.plotly_chart(fig1, use_container_width=True)
 
 
-# VISUALIZATION 4 — Price vs Genre (single-genre mode + all-genres mode)
-st.subheader("Price vs Genre")
+# VISUALIZATION 4 — Price Scatter (single-genre or ALL)
+st.subheader("Price Scatter")
 
 # Toggle for indie filtering
 view_mode = st.radio(
@@ -266,88 +266,46 @@ view_mode = st.radio(
     horizontal=True
 )
 
+# Apply genre filter BEFORE exploding
+if selected_genre != "ALL":
+    genre_price_df = filtered_df[filtered_df["genres"].apply(lambda g: selected_genre in g)]
+else:
+    genre_price_df = filtered_df.copy()
+
 # Explode genres
-genre_price_df = filtered_df.explode("genres")
+genre_price_df = genre_price_df.explode("genres")
 genre_price_df = genre_price_df[genre_price_df["genres"].notna()]
 
 # Cap prices at $100
 genre_price_df["price"] = genre_price_df["price"].clip(upper=100)
 
-# Apply toggle logic
+# Apply indie toggle
 if view_mode == "Indie Only":
     genre_price_df = genre_price_df[genre_price_df["is_indie"] == True]
 elif view_mode == "Non‑Indie Only":
     genre_price_df = genre_price_df[genre_price_df["is_indie"] == False]
 
-# --- CASE 1: A single genre is selected ---
-if selected_genre != "ALL":
-    single_df = genre_price_df[genre_price_df["genres"] == selected_genre]
-
-    if len(single_df) == 0:
-        st.warning("No games available for the selected filters.")
-    else:
-        fig_single = px.scatter(
-            single_df,
-            x=[selected_genre] * len(single_df),   # constant x-axis
-            y="price",
-            color="is_indie" if view_mode == "Highlight Indie" else None,
-            opacity=0.7,
-            title=f"Price Distribution — {selected_genre}",
-            labels={
-                "price": "Price ($, capped at 100)",
-                "x": "Genre",
-                "is_indie": "Indie Game"
-            },
-            hover_data={
-                "name": True,
-                "price": True,
-                "genres": True,
-                "is_indie": True
-            },
-            color_discrete_map={
-                True: "#1f77b4",
-                False: "#b0b0b0"
-            }
-        )
-
-        fig_single.update_layout(
-            xaxis_title="Genre",
-            yaxis_title="Price ($, capped at 100)",
-            height=700
-        )
-
-        st.plotly_chart(fig_single, use_container_width=True)
-
-# --- CASE 2: ALL genres selected ---
+# Determine x-axis label
+if selected_genre == "ALL":
+    x_label = "ALL"
 else:
-    # Sort genres by median price for cleaner layout
-    genre_order = (
-        genre_price_df.groupby("genres")["price"]
-        .median()
-        .sort_values()
-        .index.tolist()
-    )
+    x_label = selected_genre
 
-    # Convert genres to numeric codes
-    genre_price_df["genre_code"] = pd.Categorical(
-        genre_price_df["genres"],
-        categories=genre_order,
-        ordered=True
-    ).codes
+# Create a constant x-axis column
+genre_price_df["x"] = x_label
 
-    # Horizontal jitter
-    np.random.seed(42)
-    genre_price_df["jitter"] = np.random.uniform(-0.25, 0.25, size=len(genre_price_df))
-    genre_price_df["x_jittered"] = genre_price_df["genre_code"] + genre_price_df["jitter"]
-
-    fig_all = px.scatter(
+if len(genre_price_df) == 0:
+    st.warning("No games available for the selected filters.")
+else:
+    fig_scatter = px.scatter(
         genre_price_df,
-        x="x_jittered",
+        x="x",
         y="price",
         color="is_indie" if view_mode == "Highlight Indie" else None,
-        opacity=0.65,
-        title="Price vs Genre (All Genres)",
+        opacity=0.7,
+        title=f"Price Distribution — {x_label}",
         labels={
+            "x": "Genre",
             "price": "Price ($, capped at 100)",
             "is_indie": "Indie Game"
         },
@@ -363,21 +321,13 @@ else:
         }
     )
 
-    # Replace numeric ticks with genre names
-    fig_all.update_xaxes(
-        tickmode="array",
-        tickvals=list(range(len(genre_order))),
-        ticktext=genre_order,
-        title="Genre"
-    )
-
-    fig_all.update_layout(
+    fig_scatter.update_layout(
+        xaxis_title="Genre",
         yaxis_title="Price ($, capped at 100)",
-        legend_title="Is Indie:",
-        height=750
+        height=700
     )
 
-    st.plotly_chart(fig_all, use_container_width=True)
+    st.plotly_chart(fig_scatter, use_container_width=True)
 
 
 st.markdown("---")
