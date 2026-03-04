@@ -33,6 +33,15 @@ def load_and_clean_data(path: str) -> pd.DataFrame:
         .apply(lambda x: re.split(r"[;,/|]+", x))
         .apply(lambda lst: [g.strip() for g in lst if g.strip()]))
 
+    # Remove non-genre labels
+    NON_GENRES = {
+        "Utilities", "Early Access", "Free to Play", "Software", "Animation & Modeling",
+        "Audio Production", "Video Production", "Design & Illustration", "Education",
+        "Web Publishing", "Photo Editing", "Accounting", "Game Development"}
+
+    df["genres"] = df["genres"].apply(
+        lambda lst: [g for g in lst if g not in NON_GENRES])
+
     # PRICE CLEANING
     df["price"] = pd.to_numeric(df["price"], errors="coerce").fillna(0)
 
