@@ -283,11 +283,12 @@ else:
             "is_indie": "Indie Game"
         },
         hover_data={
+            "name": True,
             "price": True,
             "genres": True,
             "is_indie": True,
             "recommendation_rate": True,
-            "total_reviews": True
+            "recommendations": True
         },
         color_discrete_map={
             True: "#1f77b4",   # Indie = blue
@@ -303,6 +304,7 @@ else:
     )
 
     st.plotly_chart(fig_price_genre, use_container_width=True)
+
 
 st.markdown("---")
 st.caption("Built for the Indie Game Development Team — Steam Data 2021–2026")
