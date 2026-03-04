@@ -294,40 +294,55 @@ else:
 # Create a constant x-axis column
 genre_price_df["x"] = x_label
 
-if len(genre_price_df) == 0:
-    st.warning("No games available for the selected filters.")
+# When ALL is selected, spread points horizontally
+if selected_genre == "ALL":
+    np.random.seed(42)
+    genre_price_df["x_jittered"] = np.random.uniform(-0.5, 0.5, size=len(genre_price_df))
+    x_col = "x_jittered"
 else:
-    fig_scatter = px.scatter(
-        genre_price_df,
-        x="x",
-        y="price",
-        color="is_indie" if view_mode == "Highlight Indie" else None,
-        opacity=0.7,
-        title=f"Price Distribution — {x_label}",
-        labels={
-            "x": "Genre",
-            "price": "Price ($, capped at 100)",
-            "is_indie": "Indie Game"
-        },
-        hover_data={
-            "name": True,
-            "price": True,
-            "genres": True,
-            "is_indie": True
-        },
-        color_discrete_map={
-            True: "#1f77b4",
-            False: "#b0b0b0"
-        }
-    )
+    x_col = "x"
 
-    fig_scatter.update_layout(
-        xaxis_title="Genre",
-        yaxis_title="Price ($, capped at 100)",
-        height=700
-    )
+fig_scatter = px.scatter(
+    genre_price_df,
+    x=x_col,
+    y="price",
+    color="is_indie" if view_mode == "Highlight Indie" else None,
+    opacity=0.7,
+    title=f"Price Distribution — {x_label}",
+    labels={
+        "x": "Genre",
+        "price": "Price ($, capped at 100)",
+        "is_indie": "Indie Game"
+    },
+    hover_data={
+        "name": True,
+        "price": True,
+        "genres": True,
+        "is_indie": True
+    },
+    color_discrete_map={
+        True: "#1f77b4",
+        False: "#b0b0b0"
+    }
+)
 
-    st.plotly_chart(fig_scatter, use_container_width=True)
+# Fix x-axis label for ALL mode
+if selected_genre == "ALL":
+    fig_scatter.update_xaxes(
+        tickvals=[0],
+        ticktext=["ALL"],
+        range=[-1, 1],
+        title="Genre"
+    )
+else:
+    fig_scatter.update_xaxes(title="Genre")
+
+fig_scatter.update_layout(
+    yaxis_title="Price ($, capped at 100)",
+    height=700
+)
+
+st.plotly_chart(fig_scatter, use_container_width=True)
 
 
 st.markdown("---")
