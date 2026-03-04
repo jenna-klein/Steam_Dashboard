@@ -247,12 +247,15 @@ st.plotly_chart(fig1, use_container_width=True)
 # VISUALIZATION 4 — Price vs Recommendations (Filtered)
 st.subheader("Price vs Recommendation Rate")
 
-# Ensure recommendations column exists
+# Validate recommendations column
 if "recommendations" not in filtered_df.columns:
-    st.error("The dataset is missing the 'recommendations' column.")
+    st.error("The dataset does not contain a 'recommendations' column.")
 else:
     # Filter to games with recommendations > 0
-    games_with_recs = filtered_df[filtered_df["recommendations"] > 0]
+    games_with_recs = filtered_df[
+        (filtered_df["recommendations"].notna()) &
+        (filtered_df["recommendations"] > 0)
+    ]
 
     # Sample up to 5000 rows
     sample_size = min(5000, len(games_with_recs))
