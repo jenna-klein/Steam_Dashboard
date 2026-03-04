@@ -256,7 +256,7 @@ fig1.update_xaxes(
 st.plotly_chart(fig1, use_container_width=True)
 
 
-# VISUALIZATION 4 — Price vs Genre (cleaned, capped, jittered, sorted)
+# VISUALIZATION 4 — Price vs Genre (single-genre mode + all-genres mode)
 st.subheader("Price vs Genre")
 
 # Toggle for indie filtering
@@ -279,41 +279,76 @@ if view_mode == "Indie Only":
 elif view_mode == "Non‑Indie Only":
     genre_price_df = genre_price_df[genre_price_df["is_indie"] == False]
 
-# Sort genres by median price
-genre_order = (
-    genre_price_df.groupby("genres")["price"]
-    .median()
-    .sort_values()
-    .index.tolist()
-)
+# --- CASE 1: A single genre is selected ---
+if selected_genre != "ALL":
+    single_df = genre_price_df[genre_price_df["genres"] == selected_genre]
 
-# Convert genres to ordered categorical codes
-genre_price_df["genre_code"] = pd.Categorical(
-    genre_price_df["genres"],
-    categories=genre_order,
-    ordered=True
-).codes
+    if len(single_df) == 0:
+        st.warning("No games available for the selected filters.")
+    else:
+        fig_single = px.scatter(
+            single_df,
+            x=[selected_genre] * len(single_df),   # constant x-axis
+            y="price",
+            color="is_indie" if view_mode == "Highlight Indie" else None,
+            opacity=0.7,
+            title=f"Price Distribution — {selected_genre}",
+            labels={
+                "price": "Price ($, capped at 100)",
+                "x": "Genre",
+                "is_indie": "Indie Game"
+            },
+            hover_data={
+                "name": True,
+                "price": True,
+                "genres": True,
+                "is_indie": True
+            },
+            color_discrete_map={
+                True: "#1f77b4",
+                False: "#b0b0b0"
+            }
+        )
 
-# Add horizontal jitter
-np.random.seed(42)
-genre_price_df["jitter"] = np.random.uniform(-0.25, 0.25, size=len(genre_price_df))
+        fig_single.update_layout(
+            xaxis_title="Genre",
+            yaxis_title="Price ($, capped at 100)",
+            height=700
+        )
 
-# Final jittered x-axis
-genre_price_df["x_jittered"] = genre_price_df["genre_code"] + genre_price_df["jitter"]
+        st.plotly_chart(fig_single, use_container_width=True)
 
-if len(genre_price_df) == 0:
-    st.warning("No games available for the selected filters.")
+# --- CASE 2: ALL genres selected ---
 else:
-    fig_price_genre = px.scatter(
+    # Sort genres by median price for cleaner layout
+    genre_order = (
+        genre_price_df.groupby("genres")["price"]
+        .median()
+        .sort_values()
+        .index.tolist()
+    )
+
+    # Convert genres to numeric codes
+    genre_price_df["genre_code"] = pd.Categorical(
+        genre_price_df["genres"],
+        categories=genre_order,
+        ordered=True
+    ).codes
+
+    # Horizontal jitter
+    np.random.seed(42)
+    genre_price_df["jitter"] = np.random.uniform(-0.25, 0.25, size=len(genre_price_df))
+    genre_price_df["x_jittered"] = genre_price_df["genre_code"] + genre_price_df["jitter"]
+
+    fig_all = px.scatter(
         genre_price_df,
         x="x_jittered",
         y="price",
         color="is_indie" if view_mode == "Highlight Indie" else None,
         opacity=0.65,
-        title="Price vs Genre",
+        title="Price vs Genre (All Genres)",
         labels={
             "price": "Price ($, capped at 100)",
-            "genres": "Genre",
             "is_indie": "Indie Game"
         },
         hover_data={
@@ -329,20 +364,20 @@ else:
     )
 
     # Replace numeric ticks with genre names
-    fig_price_genre.update_xaxes(
+    fig_all.update_xaxes(
         tickmode="array",
         tickvals=list(range(len(genre_order))),
         ticktext=genre_order,
         title="Genre"
     )
 
-    fig_price_genre.update_layout(
+    fig_all.update_layout(
         yaxis_title="Price ($, capped at 100)",
         legend_title="Is Indie:",
         height=750
     )
 
-    st.plotly_chart(fig_price_genre, use_container_width=True)
+    st.plotly_chart(fig_all, use_container_width=True)
 
 
 st.markdown("---")
