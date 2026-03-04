@@ -259,17 +259,17 @@ st.plotly_chart(fig1, use_container_width=True)
 # VISUALIZATION 4 — Price vs Recommendation Count (log scale)
 st.subheader("Price vs Recommendation Count")
 
-# Define view_mode so all visualizations can use it
+# Define view_mode once so all visualizations can use it
 view_mode = st.radio(
     "View Mode",
     ["Highlight Indie", "Indie Only", "Non‑Indie Only"],
     horizontal=True
 )
 
-# --- 1. Clean and prepare data ---
+# --- Clean and prepare data ---
 scatter_df = filtered_df.copy()
 
-# Ensure recommendation column exists and is numeric
+# Ensure recommendations are numeric
 scatter_df["recommendations"] = pd.to_numeric(
     scatter_df["recommendations"], errors="coerce"
 ).fillna(0)
@@ -277,20 +277,19 @@ scatter_df["recommendations"] = pd.to_numeric(
 # Keep games with at least 1 recommendation (log scale cannot show 0)
 scatter_df = scatter_df[scatter_df["recommendations"] > 0]
 
-# Cap price (choose 100 or 1000 depending on your dataset)
+# Cap price at $100
 scatter_df["price"] = scatter_df["price"].clip(upper=100)
 
-# --- 2. Apply indie toggle ---
+# --- Apply indie toggle ---
 if view_mode == "Indie Only":
     scatter_df = scatter_df[scatter_df["is_indie"] == True]
 elif view_mode == "Non‑Indie Only":
     scatter_df = scatter_df[scatter_df["is_indie"] == False]
 
-# --- 3. Handle empty results gracefully ---
+# --- Handle empty results ---
 if scatter_df.empty:
     st.warning("No games available for the selected filters.")
 else:
-    # --- 4. Build scatterplot ---
     fig_price_rec = px.scatter(
         scatter_df,
         x="price",
@@ -316,7 +315,6 @@ else:
         }
     )
 
-    # Log scale for recommendations
     fig_price_rec.update_yaxes(type="log")
 
     fig_price_rec.update_layout(
