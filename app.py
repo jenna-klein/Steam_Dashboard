@@ -256,7 +256,7 @@ fig1.update_xaxes(
 st.plotly_chart(fig1, use_container_width=True)
 
 
-# VISUALIZATION 4 — Price vs Genre (Indie highlighted + toggle + jitter + capped price)
+# VISUALIZATION 4 — Price vs Genre (cleaned, capped, jittered, sorted)
 st.subheader("Price vs Genre")
 
 # Toggle for indie filtering
@@ -266,11 +266,11 @@ view_mode = st.radio(
     horizontal=True
 )
 
-# Explode genres so each game appears once per genre
+# Explode genres
 genre_price_df = filtered_df.explode("genres")
 genre_price_df = genre_price_df[genre_price_df["genres"].notna()]
 
-# Cap extreme prices at $100
+# Cap prices at $100
 genre_price_df["price"] = genre_price_df["price"].clip(upper=100)
 
 # Apply toggle logic
@@ -279,9 +279,17 @@ if view_mode == "Indie Only":
 elif view_mode == "Non‑Indie Only":
     genre_price_df = genre_price_df[genre_price_df["is_indie"] == False]
 
-# Add jitter to reduce overlap
+# Horizontal jitter (correct for categorical x-axis)
 np.random.seed(42)
 genre_price_df["jitter"] = np.random.uniform(-0.25, 0.25, size=len(genre_price_df))
+
+# Sort genres by median price (cleaner visual)
+genre_order = (
+    genre_price_df.groupby("genres")["price"]
+    .median()
+    .sort_values()
+    .index.tolist()
+)
 
 if len(genre_price_df) == 0:
     st.warning("No games available for the selected filters.")
@@ -293,8 +301,9 @@ else:
         color="is_indie" if view_mode == "Highlight Indie" else None,
         opacity=0.65,
         title="Price vs Genre",
+        category_orders={"genres": genre_order},
         labels={
-            "price": "Price ($)",
+            "price": "Price ($, capped at 100)",
             "genres": "Genre",
             "is_indie": "Indie Game"
         },
@@ -305,15 +314,15 @@ else:
             "is_indie": True
         },
         color_discrete_map={
-            True: "#1f77b4",   # Indie = blue
-            False: "#b0b0b0"   # Non‑indie = gray
+            True: "#1f77b4",
+            False: "#b0b0b0"
         }
     )
 
-    # Apply jitter by shifting points vertically
+    # Apply horizontal jitter
     fig_price_genre.update_traces(
         marker=dict(size=8),
-        y=genre_price_df["price"] + genre_price_df["jitter"]
+        x=genre_price_df["genres"] + genre_price_df["jitter"]
     )
 
     fig_price_genre.update_layout(
