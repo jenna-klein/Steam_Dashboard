@@ -291,26 +291,18 @@ if selected_genre == "ALL":
 else:
     x_label = selected_genre
 
-# Create a constant x-axis column
-genre_price_df["x"] = x_label
-
-# When ALL is selected, spread points across the full width
-if selected_genre == "ALL":
-    np.random.seed(42)
-    genre_price_df["x_spread"] = np.random.uniform(0, 1, size=len(genre_price_df))
-    x_col = "x_spread"
-else:
-    x_col = "x"
+# Create a full-width horizontal spread for ALL modes
+np.random.seed(42)
+genre_price_df["x_spread"] = np.random.uniform(0, 1, size=len(genre_price_df))
 
 fig_scatter = px.scatter(
     genre_price_df,
-    x=x_col,
+    x="x_spread",
     y="price",
     color="is_indie" if view_mode == "Highlight Indie" else None,
     opacity=0.7,
     title=f"Price Distribution — {x_label}",
     labels={
-        "x": "Genre",
         "price": "Price ($, capped at 100)",
         "is_indie": "Indie Game"
     },
@@ -326,16 +318,13 @@ fig_scatter = px.scatter(
     }
 )
 
-# Fix x-axis for ALL mode
-if selected_genre == "ALL":
-    fig_scatter.update_xaxes(
-        tickvals=[0.5],
-        ticktext=["ALL"],
-        range=[0, 1],
-        title="Genre"
-    )
-else:
-    fig_scatter.update_xaxes(title="Genre")
+# Override x-axis to show only the selected label
+fig_scatter.update_xaxes(
+    tickvals=[0.5],
+    ticktext=[x_label],
+    range=[0, 1],
+    title="Genre"
+)
 
 fig_scatter.update_layout(
     yaxis_title="Price ($, capped at 100)",
