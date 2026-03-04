@@ -294,11 +294,11 @@ else:
 # Create a constant x-axis column
 genre_price_df["x"] = x_label
 
-# When ALL is selected, spread points horizontally
+# When ALL is selected, spread points across the full width
 if selected_genre == "ALL":
     np.random.seed(42)
-    genre_price_df["x_jittered"] = np.random.uniform(-0.5, 0.5, size=len(genre_price_df))
-    x_col = "x_jittered"
+    genre_price_df["x_spread"] = np.random.uniform(0, 1, size=len(genre_price_df))
+    x_col = "x_spread"
 else:
     x_col = "x"
 
@@ -326,12 +326,12 @@ fig_scatter = px.scatter(
     }
 )
 
-# Fix x-axis label for ALL mode
+# Fix x-axis for ALL mode
 if selected_genre == "ALL":
     fig_scatter.update_xaxes(
-        tickvals=[0],
+        tickvals=[0.5],
         ticktext=["ALL"],
-        range=[-1, 1],
+        range=[0, 1],
         title="Genre"
     )
 else:
