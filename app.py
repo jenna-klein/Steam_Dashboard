@@ -257,7 +257,7 @@ fig1.update_xaxes(
 st.plotly_chart(fig1, use_container_width=True)
 
 
-# VISUALIZATION 4 — Boxplot + Scatter Overlay
+# VISUALIZATION 4 — Violin + Scatter Overlay
 st.subheader("Price Distribution")
 
 # Toggle for indie filtering
@@ -297,14 +297,17 @@ genre_price_df["x_jitter"] = np.random.uniform(-0.15, 0.15, size=len(genre_price
 # --- Build the figure ---
 fig = go.Figure()
 
-# Boxplot (no outlier points because scatter will show them)
-fig.add_trace(go.Box(
+# Violin plot
+fig.add_trace(go.Violin(
     y=genre_price_df["price"],
     x=genre_price_df["x"],
     name=x_label,
-    boxpoints=False,
-    marker_color="#999999",
-    line_color="#444444"
+    box_visible=True,
+    meanline_visible=True,
+    line_color="#444444",
+    fillcolor="rgba(200,200,200,0.3)",
+    opacity=0.6,
+    spanmode="hard"
 ))
 
 # Scatter overlay
