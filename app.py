@@ -37,7 +37,7 @@ def load_and_clean_data(path: str) -> pd.DataFrame:
     NON_GENRES = {
         "Utilities", "Early Access", "Free to Play", "Software", "Animation & Modeling",
         "Audio Production", "Video Production", "Design & Illustration", "Education",
-        "Web Publishing", "Photo Editing", "Accounting", "Game Development"}
+        "Web Publishing", "Photo Editing", "Accounting", "Game Development", "Software Training"}
 
     df["genres"] = df["genres"].apply(
         lambda lst: [g for g in lst if g not in NON_GENRES])
