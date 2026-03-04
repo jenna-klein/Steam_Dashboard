@@ -259,50 +259,67 @@ st.plotly_chart(fig1, use_container_width=True)
 # VISUALIZATION 4 — Price vs Recommendation Count (log scale)
 st.subheader("Price vs Recommendation Count")
 
-# Add this line
-view_mode = st.radio(
-    "View Mode",
-    ["Highlight Indie", "Indie Only", "Non‑Indie Only"],
-    horizontal=True
-)
+# --- 1. Clean and prepare data ---
+scatter_df = filtered_df.copy()
 
-scatter_df = filtered_df[filtered_df["recommendations"] > 0].copy()
+# Ensure recommendation column exists and is numeric
+scatter_df["recommendations"] = pd.to_numeric(
+    scatter_df["recommendations"], errors="coerce"
+).fillna(0)
+
+# Keep games with at least 1 recommendation (log scale cannot show 0)
+scatter_df = scatter_df[scatter_df["recommendations"] > 0]
+
+# Cap price (choose 100 or 1000 depending on your dataset)
 scatter_df["price"] = scatter_df["price"].clip(upper=100)
 
+# --- 2. Apply indie toggle ---
 if view_mode == "Indie Only":
     scatter_df = scatter_df[scatter_df["is_indie"] == True]
 elif view_mode == "Non‑Indie Only":
     scatter_df = scatter_df[scatter_df["is_indie"] == False]
 
-fig_price_rec = px.scatter(
-    scatter_df,
-    x="price",
-    y="recommendations",
-    color="is_indie" if view_mode == "Highlight Indie" else None,
-    opacity=0.65,
-    title="Price vs Recommendation Count",
-    labels={
-        "price": "Price ($, capped at 100)",
-        "recommendations": "Recommendation Count (log scale)",
-        "is_indie": "Indie Game"
-    },
-    hover_data={
-        "name": True,
-        "price": True,
-        "recommendations": True,
-        "genres": True,
-        "is_indie": True
-    },
-    color_discrete_map={
-        True: "#1f77b4",
-        False: "#b0b0b0"
-    }
-)
+# --- 3. Handle empty results gracefully ---
+if scatter_df.empty:
+    st.warning("No games available for the selected filters.")
+else:
+    # --- 4. Build scatterplot ---
+    fig_price_rec = px.scatter(
+        scatter_df,
+        x="price",
+        y="recommendations",
+        color="is_indie" if view_mode == "Highlight Indie" else None,
+        opacity=0.65,
+        title="Price vs Recommendation Count",
+        labels={
+            "price": "Price ($, capped at 100)",
+            "recommendations": "Recommendation Count (log scale)",
+            "is_indie": "Indie Game"
+        },
+        hover_data={
+            "name": True,
+            "price": True,
+            "recommendations": True,
+            "genres": True,
+            "is_indie": True
+        },
+        color_discrete_map={
+            True: "#1f77b4",
+            False: "#b0b0b0"
+        }
+    )
 
-fig_price_rec.update_yaxes(type="log")
-fig_price_rec.update_layout(height=750)
+    # Log scale for recommendations
+    fig_price_rec.update_yaxes(type="log")
 
-st.plotly_chart(fig_price_rec, use_container_width=True)
+    fig_price_rec.update_layout(
+        xaxis_title="Price ($, capped at 100)",
+        yaxis_title="Recommendation Count (log scale)",
+        legend_title="Is Indie:",
+        height=750
+    )
+
+    st.plotly_chart(fig_price_rec, use_container_width=True)
 
 
 st.markdown("---")
