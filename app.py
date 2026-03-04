@@ -256,19 +256,29 @@ fig1.update_xaxes(
 st.plotly_chart(fig1, use_container_width=True)
 
 
-# VISUALIZATION 4 -- Price vs Recommendation Rate
+# VISUALIZATION 4 — Price vs Recommendation Rate (Genre-aware, Global when ALL)
 st.subheader("Price vs Recommendation Rate")
 
-games_with_recs = filtered_df[filtered_df["recommendations"] > 0]
+# Start with filtered_df (already year/genre/price filtered)
+scatter_df = filtered_df.copy()
 
-sample_size = min(5000, len(games_with_recs))
-sample = games_with_recs.sample(sample_size) if sample_size > 0 else games_with_recs
+# Ensure recommendations are numeric
+scatter_df["recommendations"] = pd.to_numeric(
+    scatter_df["recommendations"], errors="coerce"
+).fillna(0)
 
-if len(sample) == 0:
-    st.warning("No games with recommendations available for the selected filters.")
+# Log scale cannot show 0 → convert 0 to 1 so all games remain visible
+scatter_df["recommendations"] = scatter_df["recommendations"].replace(0, 1)
+
+# Cap price at 100 for consistency
+scatter_df["price"] = scatter_df["price"].clip(upper=100)
+
+# Handle empty results
+if scatter_df.empty:
+    st.warning("No games available for the selected filters.")
 else:
     fig_price_rec = px.scatter(
-        sample,
+        scatter_df,
         x="price",
         y="recommendations",
         color="is_indie",
@@ -278,6 +288,13 @@ else:
             "price": "Price ($)",
             "recommendations": "Recommendations (log scale)",
             "is_indie": "Indie Game"
+        },
+        hover_data={
+            "name": True,
+            "price": True,
+            "recommendations": True,
+            "genres": True,
+            "is_indie": True
         },
         color_discrete_map={
             True: "#1f77b4",   # Indie = blue
