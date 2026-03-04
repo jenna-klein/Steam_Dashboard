@@ -247,7 +247,7 @@ fig1.update_xaxes(
 st.plotly_chart(fig1, use_container_width=True)
 
 
-# VISUALIZATION 4 — Price vs Genre (Indie highlighted + toggle + jitter)
+# VISUALIZATION 4 — Price vs Genre (Indie highlighted + toggle + jitter + capped price)
 st.subheader("Price vs Genre")
 
 # Toggle for indie filtering
@@ -260,6 +260,9 @@ view_mode = st.radio(
 # Explode genres so each game appears once per genre
 genre_price_df = filtered_df.explode("genres")
 genre_price_df = genre_price_df[genre_price_df["genres"].notna()]
+
+# Cap extreme prices at $100
+genre_price_df["price"] = genre_price_df["price"].clip(upper=100)
 
 # Apply toggle logic
 if view_mode == "Indie Only":
@@ -306,7 +309,7 @@ else:
 
     fig_price_genre.update_layout(
         xaxis_title="Genre",
-        yaxis_title="Price ($)",
+        yaxis_title="Price ($, capped at 100)",
         legend_title="Is Indie:",
         height=750
     )
