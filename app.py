@@ -256,69 +256,54 @@ fig1.update_xaxes(
 st.plotly_chart(fig1, use_container_width=True)
 
 
-# VISUALIZATION 4 — Genre-Aware Scatter (Global when ALL)
-st.subheader("Price Distribution — Scatter")
+# VISUALIZATION 4 — Price vs Recommendations (Filtered)
+st.subheader("Price vs Recommendation Rate")
 
-# Start with your filtered_df (year, price range, etc.)
-genre_price_df = filtered_df.copy()
+# Validate recommendations column
+if "recommendations" not in filtered_df.columns:
+    st.error("The dataset does not contain a 'recommendations' column.")
+else:
+    # Filter to games with recommendations > 0
+    games_with_recs = filtered_df[
+        (filtered_df["recommendations"].notna()) &
+        (filtered_df["recommendations"] > 0)
+    ]
 
-# Apply genre filter only when not ALL
-if selected_genre != "ALL":
-    genre_price_df = genre_price_df[genre_price_df["genres"].apply(lambda g: selected_genre in g)]
+    # Sample up to 5000 rows
+    sample_size = min(5000, len(games_with_recs))
+    sample = games_with_recs.sample(sample_size) if sample_size > 0 else games_with_recs
 
-# Explode genres so each row has one genre
-genre_price_df = genre_price_df.explode("genres")
-genre_price_df = genre_price_df[genre_price_df["genres"].notna()]
+    if len(sample) == 0:
+        st.warning("No games with recommendations available for the selected filters.")
+    else:
+        fig_price_rec = px.scatter(
+            sample,
+            x="price",
+            y="recommendations",
+            color="is_indie",
+            opacity=0.5,
+            title="Game Price vs Popularity (Recommendations, Log Scale)",
+            labels={
+                "price": "Price ($)",
+                "recommendations": "Recommendations (log scale)",
+                "is_indie": "Indie Game"
+            },
+            color_discrete_map={
+                True: "#1f77b4",   # Indie = blue
+                False: "#b0b0b0"   # Non‑indie = gray
+            }
+        )
 
-# Cap prices at 100 (same as your original)
-genre_price_df["price"] = genre_price_df["price"].clip(upper=100)
+        fig_price_rec.update_yaxes(type="log")
 
-# Horizontal jitter so points don’t overlap
-np.random.seed(42)
-genre_price_df["x_jitter"] = np.random.uniform(-0.15, 0.15, size=len(genre_price_df))
+        fig_price_rec.update_layout(
+            xaxis_title="Price ($)",
+            yaxis_title="Recommendations (log scale)",
+            legend_title="Is Indie:",
+            height=600
+        )
 
-# Determine x-axis label
-x_label = selected_genre if selected_genre != "ALL" else "ALL GENRES"
-
-# Build scatter
-fig = px.scatter(
-    genre_price_df,
-    x="x_jitter",
-    y="price",
-    color="is_indie",
-    opacity=0.7,
-    labels={
-        "price": "Price ($, capped at 100)",
-        "is_indie": "Indie Game"
-    },
-    hover_data={
-        "name": True,
-        "price": True,
-        "genres": True,
-        "is_indie": True
-    },
-    color_discrete_map={
-        True: "#1f77b4",   # indie
-        False: "#b0b0b0"   # non-indie
-    }
-)
-
-# X-axis formatting (single label)
-fig.update_xaxes(
-    tickvals=[0],
-    ticktext=[x_label],
-    title="Genre",
-    range=[-0.5, 0.5]
-)
-
-fig.update_layout(
-    title=f"Price Distribution — {x_label}",
-    yaxis_title="Price ($, capped at 100)",
-    height=700,
-    showlegend=True
-)
-
-st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig_price_rec, use_container_width=True)
 
 
 st.markdown("---")
