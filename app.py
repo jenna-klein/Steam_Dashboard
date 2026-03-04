@@ -256,8 +256,8 @@ fig1.update_xaxes(
 st.plotly_chart(fig1, use_container_width=True)
 
 
-# VISUALIZATION 4 — Price Scatter (single-genre or ALL)
-st.subheader("Price Scatter")
+# VISUALIZATION 4 — Boxplot + Scatter Overlay
+st.subheader("Price Distribution")
 
 # Toggle for indie filtering
 view_mode = st.radio(
@@ -286,52 +286,66 @@ elif view_mode == "Non‑Indie Only":
     genre_price_df = genre_price_df[genre_price_df["is_indie"] == False]
 
 # Determine x-axis label
-if selected_genre == "ALL":
-    x_label = "ALL"
-else:
-    x_label = selected_genre
+x_label = selected_genre if selected_genre != "ALL" else "ALL"
+genre_price_df["x"] = x_label
 
-# Create a full-width horizontal spread for ALL modes
+# Horizontal jitter for scatter overlay
 np.random.seed(42)
-genre_price_df["x_spread"] = np.random.uniform(0, 1, size=len(genre_price_df))
+genre_price_df["x_jitter"] = np.random.uniform(-0.15, 0.15, size=len(genre_price_df))
 
-fig_scatter = px.scatter(
-    genre_price_df,
-    x="x_spread",
-    y="price",
-    color="is_indie" if view_mode == "Highlight Indie" else None,
-    opacity=0.7,
-    title=f"Price Distribution — {x_label}",
-    labels={
-        "price": "Price ($, capped at 100)",
-        "is_indie": "Indie Game"
-    },
-    hover_data={
-        "name": True,
-        "price": True,
-        "genres": True,
-        "is_indie": True
-    },
-    color_discrete_map={
-        True: "#1f77b4",
-        False: "#b0b0b0"
-    }
-)
+# --- Build the figure ---
+fig = go.Figure()
 
-# Override x-axis to show only the selected label
-fig_scatter.update_xaxes(
-    tickvals=[0.5],
+# Boxplot (no outlier points because scatter will show them)
+fig.add_trace(go.Box(
+    y=genre_price_df["price"],
+    x=genre_price_df["x"],
+    name=x_label,
+    boxpoints=False,
+    marker_color="#999999",
+    line_color="#444444"
+))
+
+# Scatter overlay
+fig.add_trace(go.Scatter(
+    x=genre_price_df["x_jitter"],
+    y=genre_price_df["price"],
+    mode="markers",
+    marker=dict(
+        size=7,
+        color=genre_price_df["is_indie"].map({True: "#1f77b4", False: "#b0b0b0"}),
+        opacity=0.7
+    ),
+    hovertemplate=(
+        "<b>%{customdata[0]}</b><br>" +
+        "Price: $%{y}<br>" +
+        "Genre: %{customdata[1]}<br>" +
+        "Indie: %{customdata[2]}<extra></extra>"
+    ),
+    customdata=np.stack([
+        genre_price_df["name"],
+        genre_price_df["genres"],
+        genre_price_df["is_indie"]
+    ], axis=-1)
+))
+
+# X-axis formatting
+fig.update_xaxes(
+    tickvals=[0],
     ticktext=[x_label],
-    range=[0, 1],
-    title="Genre"
+    title="Genre",
+    range=[-0.5, 0.5]
 )
 
-fig_scatter.update_layout(
+# Layout
+fig.update_layout(
+    title=f"Price Distribution — {x_label}",
     yaxis_title="Price ($, capped at 100)",
-    height=700
+    height=750,
+    showlegend=False
 )
 
-st.plotly_chart(fig_scatter, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True)
 
 
 st.markdown("---")
