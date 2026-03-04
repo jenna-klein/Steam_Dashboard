@@ -52,13 +52,10 @@ def load_and_clean_data(path: str) -> pd.DataFrame:
     df["is_indie"] = df["genres"].apply(lambda g: "Indie" in g)
 
     # RECOMMENDATION RATE
-    if "positive_ratings" in df.columns and "negative_ratings" in df.columns:
-        df["total_reviews"] = df["positive_ratings"] + df["negative_ratings"]
-        df["recommendations"] = df["total_reviews"]
-        df["recommendation_rate"] = (
-            df["positive_ratings"] / df["total_reviews"].replace(0, np.nan))
-    else:
-        df["recommendations"] = np.nan
+    df["recommendations"] = pd.to_numeric(df["recommendations"], errors="coerce").fillna(0)
+
+    # RECOMMENDATION RATE - if not already in CSV
+    if "recommendation_rate" not in df.columns:
         df["recommendation_rate"] = np.nan
 
     return df
@@ -107,16 +104,16 @@ selected_price = st.sidebar.slider(
 filtered_df = apply_filters(df, selected_year, selected_genre, selected_price)
 
 # KPI FUNCTIONS
-def compute_indie_market_share(filtered_df):
+def compute_indie_market_share(data_df):
     total = len(filtered_df)
     indie = filtered_df["is_indie"].sum()
     return (indie / total * 100) if total > 0 else 0
 
-def compute_median_indie_price(filtered_df):
+def compute_median_indie_price(data_df):
     indie_prices = filtered_df[filtered_df["is_indie"] == True]["price"]
     return indie_prices.median() if len(indie_prices) > 0 else 0
 
-def compute_fastest_growing_genre(filtered_df):
+def compute_fastest_growing_genre(data_df):
     if filtered_df["release_year"].nunique() < 2:
         return None, None
 
@@ -255,30 +252,26 @@ fig1.update_xaxes(
 
 st.plotly_chart(fig1, use_container_width=True)
 
-# VISUALIZATION 4 -- Price vs Recommendation Rate (Restored Review Counts)
-st.subheader("Price vs Recommendation Rate")
 
-# Start with filtered_df (already year/genre/price filtered)
+# VISUALIZATION 4 — Price vs Recommendation Count (log scale)
+st.subheader("Price vs Recommendation Count")
+
+# --- Clean and prepare data ---
 scatter_df = filtered_df.copy()
 
-# Restore original Steam review counts
-if "positive_ratings" in scatter_df.columns and "negative_ratings" in scatter_df.columns:
-    scatter_df["recommendations"] = (
-        scatter_df["positive_ratings"] + scatter_df["negative_ratings"]
-    )
-else:
-    # Fallback if columns are missing
-    scatter_df["recommendations"] = pd.to_numeric(
-        scatter_df["recommendations"], errors="coerce"
-    ).fillna(0)
+# Ensure recommendations are numeric
+scatter_df["recommendations"] = pd.to_numeric(
+    scatter_df["recommendations"], errors="coerce"
+).fillna(0)
 
-# Log scale cannot show 0 → convert 0 to 1
-scatter_df["recommendations"] = scatter_df["recommendations"].replace(0, 1)
+# Remove games with 0 recommendations (log scale cannot show 0)
+scatter_df = scatter_df[scatter_df["recommendations"] > 0]
 
-# Cap price at 100 for consistency
+
+# Cap price at $100
 scatter_df["price"] = scatter_df["price"].clip(upper=100)
 
-# Handle empty results
+# --- Handle empty results ---
 if scatter_df.empty:
     st.warning("No games available for the selected filters.")
 else:
@@ -287,11 +280,15 @@ else:
         x="price",
         y="recommendations",
         color="is_indie",
-        opacity=0.5,
-        title="Game Price vs Popularity (Recommendations, Log Scale)",
+        color_discrete_map={
+            True: "#1f77b4",  # indie
+            False: "#b0b0b0"  # non‑indie
+        },
+        opacity=0.65,
+        title="Price vs Recommendation Count",
         labels={
-            "price": "Price ($)",
-            "recommendations": "Recommendations (log scale)",
+            "price": "Price ($, capped at 100)",
+            "recommendations": "Recommendation Count (log scale)",
             "is_indie": "Indie Game"
         },
         hover_data={
@@ -300,21 +297,22 @@ else:
             "recommendations": True,
             "genres": True,
             "is_indie": True
-        },
-        color_discrete_map={
-            True: "#1f77b4",
-            False: "#b0b0b0"
         }
     )
 
+    # Log scale for recommendations
     fig_price_rec.update_yaxes(type="log")
 
     fig_price_rec.update_layout(
-        xaxis_title="Price ($)",
-        yaxis_title="Recommendations (log scale)",
-        legend_title="Is Indie:",
-        height=600
+        xaxis_title="Price ($, capped at 100)",
+        yaxis_title="Recommendation Count (log scale)",
+        legend_title="Game Type:",
+        height=750
     )
+
+    fig_price_rec.for_each_trace(lambda t: t.update(
+        name="Indie Games" if t.name == "True" else "Non-Indie Games"
+    ))
 
     st.plotly_chart(fig_price_rec, use_container_width=True)
 
