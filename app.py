@@ -256,54 +256,46 @@ fig1.update_xaxes(
 st.plotly_chart(fig1, use_container_width=True)
 
 
-# VISUALIZATION 4 — Price vs Recommendations (Filtered)
+# VISUALIZATION 4 -- Price vs Recommendation Rate
 st.subheader("Price vs Recommendation Rate")
 
-# Validate recommendations column
-if "recommendations" not in filtered_df.columns:
-    st.error("The dataset does not contain a 'recommendations' column.")
+games_with_recs = filtered_df[filtered_df["recommendations"] > 0]
+
+sample_size = min(5000, len(games_with_recs))
+sample = games_with_recs.sample(sample_size) if sample_size > 0 else games_with_recs
+
+if len(sample) == 0:
+    st.warning("No games with recommendations available for the selected filters.")
 else:
-    # Filter to games with recommendations > 0
-    games_with_recs = filtered_df[
-        (filtered_df["recommendations"].notna()) &
-        (filtered_df["recommendations"] > 0)
-    ]
+    fig_price_rec = px.scatter(
+        sample,
+        x="price",
+        y="recommendations",
+        color="is_indie",
+        opacity=0.5,
+        title="Game Price vs Popularity (Recommendations, Log Scale)",
+        labels={
+            "price": "Price ($)",
+            "recommendations": "Recommendations (log scale)",
+            "is_indie": "Indie Game"
+        },
+        color_discrete_map={
+            True: "#1f77b4",   # Indie = blue
+            False: "#b0b0b0"   # Non‑indie = gray
+        }
+    )
 
-    # Sample up to 5000 rows
-    sample_size = min(5000, len(games_with_recs))
-    sample = games_with_recs.sample(sample_size) if sample_size > 0 else games_with_recs
+    fig_price_rec.update_yaxes(type="log")
 
-    if len(sample) == 0:
-        st.warning("No games with recommendations available for the selected filters.")
-    else:
-        fig_price_rec = px.scatter(
-            sample,
-            x="price",
-            y="recommendations",
-            color="is_indie",
-            opacity=0.5,
-            title="Game Price vs Popularity (Recommendations, Log Scale)",
-            labels={
-                "price": "Price ($)",
-                "recommendations": "Recommendations (log scale)",
-                "is_indie": "Indie Game"
-            },
-            color_discrete_map={
-                True: "#1f77b4",   # Indie = blue
-                False: "#b0b0b0"   # Non‑indie = gray
-            }
-        )
+    fig_price_rec.update_layout(
+        xaxis_title="Price ($)",
+        yaxis_title="Recommendations (log scale)",
+        legend_title="Is Indie:",
+        height=600
+    )
 
-        fig_price_rec.update_yaxes(type="log")
-
-        fig_price_rec.update_layout(
-            xaxis_title="Price ($)",
-            yaxis_title="Recommendations (log scale)",
-            legend_title="Is Indie:",
-            height=600
-        )
-
-        st.plotly_chart(fig_price_rec, use_container_width=True)
+    st.plotly_chart(fig_price_rec, use_container_width=True)
+rec, use_container_width=True)
 
 
 st.markdown("---")
