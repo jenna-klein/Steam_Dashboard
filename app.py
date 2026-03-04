@@ -259,13 +259,6 @@ st.plotly_chart(fig1, use_container_width=True)
 # VISUALIZATION 4 — Price vs Recommendation Count (log scale)
 st.subheader("Price vs Recommendation Count")
 
-# Define view_mode once so all visualizations can use it
-view_mode = st.radio(
-    "View Mode",
-    ["Highlight Indie", "Indie Only", "Non‑Indie Only"],
-    horizontal=True
-)
-
 # --- Clean and prepare data ---
 scatter_df = filtered_df.copy()
 
@@ -274,17 +267,11 @@ scatter_df["recommendations"] = pd.to_numeric(
     scatter_df["recommendations"], errors="coerce"
 ).fillna(0)
 
-# Keep games with at least 1 recommendation (log scale cannot show 0)
+# Remove games with 0 recommendations (log scale cannot show 0)
 scatter_df = scatter_df[scatter_df["recommendations"] > 0]
 
 # Cap price at $100
 scatter_df["price"] = scatter_df["price"].clip(upper=100)
-
-# --- Apply indie toggle ---
-if view_mode == "Indie Only":
-    scatter_df = scatter_df[scatter_df["is_indie"] == True]
-elif view_mode == "Non‑Indie Only":
-    scatter_df = scatter_df[scatter_df["is_indie"] == False]
 
 # --- Handle empty results ---
 if scatter_df.empty:
@@ -294,7 +281,7 @@ else:
         scatter_df,
         x="price",
         y="recommendations",
-        color="is_indie" if view_mode == "Highlight Indie" else None,
+        color="is_indie",
         opacity=0.65,
         title="Price vs Recommendation Count",
         labels={
@@ -310,11 +297,12 @@ else:
             "is_indie": True
         },
         color_discrete_map={
-            True: "#1f77b4",
-            False: "#b0b0b0"
+            True: "#1f77b4",   # indie
+            False: "#b0b0b0"   # non‑indie
         }
     )
 
+    # Log scale for recommendations
     fig_price_rec.update_yaxes(type="log")
 
     fig_price_rec.update_layout(
