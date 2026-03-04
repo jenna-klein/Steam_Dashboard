@@ -202,17 +202,31 @@ fig_genres.update_traces(textposition="outside")
 st.plotly_chart(fig_genres, use_container_width=True)
 
 
-# VISUALIZATION 3 — Indie Market Share Over Time (NOT affected by filters)
+# VISUALIZATION 3 — Indie Market Share Over Time (Genre filter only)
 st.subheader("Indie Market Share Over Time")
 
-yearly = df.groupby("release_year")["is_indie"].mean().reset_index()
-yearly["is_indie"] *= 100
+# Start with full dataset
+genre_filtered_df = df.copy()
+
+# Apply ONLY the genre filter
+if selected_genre != "ALL":
+    genre_filtered_df = genre_filtered_df[
+        genre_filtered_df["genres"].apply(lambda g: selected_genre in g)]
+
+# Compute indie share per year
+yearly = (
+    genre_filtered_df
+    .groupby("release_year")["is_indie"]
+    .mean()
+    .reset_index())
+
+yearly["is_indie"] *= 100  # convert to %
 
 fig1 = px.line(
     yearly,
     x="release_year",
     y="is_indie",
-    title="Indie Market Share (%) by Year")
+    title=f"Indie Market Share (%) by Year — Genre: {selected_genre}")
 
 fig1.update_xaxes(
     type="category",
