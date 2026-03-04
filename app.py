@@ -295,7 +295,6 @@ else:
     )
 
     st.plotly_chart(fig_price_rec, use_container_width=True)
-rec, use_container_width=True)
 
 
 st.markdown("---")
