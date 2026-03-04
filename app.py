@@ -66,7 +66,7 @@ def apply_filters(df, selected_year, selected_genre, price_range):
         filtered = filtered[filtered["release_year"] == selected_year]
 
     if selected_genre != "ALL":
-        filtered= [filtered["genres"].apply(lambda g: selected_genre in g)]
+        filtered = filtered[filtered["genres"].apply(lambda g: selected_genre in g)]
 
     filtered = filtered[
         filtered["price"].between(price_range[0], price_range[1])]
@@ -147,7 +147,7 @@ with kpi1:
     st.metric("Indie Market Share (%)", f"{share:.1f}%")
 
 with kpi2:
-    genre, growth = compute_fastest_growing_genre(df)
+    genre, growth = compute_fastest_growing_genre(filtered_df)
     if genre:
         st.metric("Fastest Growing Genre", genre, f"{growth:.1%}")
     else:
