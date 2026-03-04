@@ -271,11 +271,13 @@ else:
             labels={
                 "price": "Price ($)",
                 "recommendations": "Recommendations (log scale)",
-                "is_indie": "Indie Game"},
+                "is_indie": "Indie Game"
+            },
             color_discrete_map={
                 True: "#1f77b4",   # Indie = blue
-                False: "#b0b0b0"   # Non‑indie = gray})
+                False: "#b0b0b0"   # Non‑indie = gray
             }
+        )
 
         fig_price_rec.update_yaxes(type="log")
 
