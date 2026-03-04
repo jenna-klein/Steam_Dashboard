@@ -283,7 +283,8 @@ else:
             xaxis_title="Price ($)",
             yaxis_title="Recommendations (log scale)",
             legend_title="Is Indie:",
-            height=600)
+            height=600
+        )
 
         st.plotly_chart(fig_price_rec, use_container_width=True)
 
