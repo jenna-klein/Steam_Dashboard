@@ -202,10 +202,10 @@ fig_genres.update_traces(textposition="outside")
 st.plotly_chart(fig_genres, use_container_width=True)
 
 
-# VISUALIZATION 3 — Indie Market Share Over Time (Filtered)
+# VISUALIZATION 3 — Indie Market Share Over Time (NOT affected by filters)
 st.subheader("Indie Market Share Over Time")
 
-yearly = filtered_df.groupby("release_year")["is_indie"].mean().reset_index()
+yearly = df.groupby("release_year")["is_indie"].mean().reset_index()
 yearly["is_indie"] *= 100
 
 fig1 = px.line(
