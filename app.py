@@ -187,6 +187,10 @@ fig.update_xaxes(
     tickformat="%Y"
 )
 
+fig.update_traces(
+    hovertemplate="%{x|%B %Y}<br>Releases: %{y}"
+)
+
 st.plotly_chart(fig, use_container_width=True)
 
 
