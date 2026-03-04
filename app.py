@@ -255,18 +255,24 @@ fig1.update_xaxes(
 
 st.plotly_chart(fig1, use_container_width=True)
 
-# VISUALIZATION 4 -- Price vs Recommendation Rate
+# VISUALIZATION 4 -- Price vs Recommendation Rate (Restored Review Counts)
 st.subheader("Price vs Recommendation Rate")
 
 # Start with filtered_df (already year/genre/price filtered)
 scatter_df = filtered_df.copy()
 
-# Ensure recommendations are numeric
-scatter_df["recommendations"] = pd.to_numeric(
-    scatter_df["recommendations"], errors="coerce"
-).fillna(0)
+# Restore original Steam review counts
+if "positive_ratings" in scatter_df.columns and "negative_ratings" in scatter_df.columns:
+    scatter_df["recommendations"] = (
+        scatter_df["positive_ratings"] + scatter_df["negative_ratings"]
+    )
+else:
+    # Fallback if columns are missing
+    scatter_df["recommendations"] = pd.to_numeric(
+        scatter_df["recommendations"], errors="coerce"
+    ).fillna(0)
 
-# Log scale cannot show 0 → convert 0 to 1 so all games remain visible
+# Log scale cannot show 0 → convert 0 to 1
 scatter_df["recommendations"] = scatter_df["recommendations"].replace(0, 1)
 
 # Cap price at 100 for consistency
@@ -296,8 +302,8 @@ else:
             "is_indie": True
         },
         color_discrete_map={
-            True: "#1f77b4",   # Indie = blue
-            False: "#b0b0b0"   # Non‑indie = gray
+            True: "#1f77b4",
+            False: "#b0b0b0"
         }
     )
 
