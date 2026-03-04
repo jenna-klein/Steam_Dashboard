@@ -247,7 +247,7 @@ fig1.update_xaxes(
 st.plotly_chart(fig1, use_container_width=True)
 
 
-# VISUALIZATION 4 — Price vs Genre (Indie highlighted + toggle)
+# VISUALIZATION 4 — Price vs Genre (Indie highlighted + toggle + jitter)
 st.subheader("Price vs Genre")
 
 # Toggle for indie filtering
@@ -267,13 +267,17 @@ if view_mode == "Indie Only":
 elif view_mode == "Non‑Indie Only":
     genre_price_df = genre_price_df[genre_price_df["is_indie"] == False]
 
+# Add jitter to reduce overlap
+np.random.seed(42)
+genre_price_df["jitter"] = np.random.uniform(-0.25, 0.25, size=len(genre_price_df))
+
 if len(genre_price_df) == 0:
     st.warning("No games available for the selected filters.")
 else:
     fig_price_genre = px.scatter(
         genre_price_df,
-        x="price",
-        y="genres",
+        x="genres",
+        y="price",
         color="is_indie" if view_mode == "Highlight Indie" else None,
         opacity=0.65,
         title="Price vs Genre",
@@ -286,9 +290,7 @@ else:
             "name": True,
             "price": True,
             "genres": True,
-            "is_indie": True,
-            "recommendation_rate": True,
-            "recommendations": True
+            "is_indie": True
         },
         color_discrete_map={
             True: "#1f77b4",   # Indie = blue
@@ -296,9 +298,15 @@ else:
         }
     )
 
+    # Apply jitter by shifting points vertically
+    fig_price_genre.update_traces(
+        marker=dict(size=8),
+        y=genre_price_df["price"] + genre_price_df["jitter"]
+    )
+
     fig_price_genre.update_layout(
-        xaxis_title="Price ($)",
-        yaxis_title="Genre",
+        xaxis_title="Genre",
+        yaxis_title="Price ($)",
         legend_title="Is Indie:",
         height=750
     )
