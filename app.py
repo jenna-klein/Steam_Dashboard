@@ -111,9 +111,9 @@ def compute_indie_market_share(data_df):
     indie = data_df["is_indie"].sum()
     return (indie / total * 100) if total > 0 else 0
 
-def compute_median_indie_price(data_df):
+def compute_average_indie_price(data_df):
     indie_prices = data_df[data_df["is_indie"] == True]["price"]
-    return indie_prices.median() if len(indie_prices) > 0 else 0
+    return indie_prices.mean() if len(indie_prices) > 0 else 0
 
 def compute_fastest_growing_genre(data_df):
     if data_df["release_year"].nunique() < 2:
@@ -163,8 +163,8 @@ with kpi2:
         st.metric("Fastest Growing Genre", "N/A")
 
 with kpi3:
-    median_price = compute_median_indie_price(filtered_df)
-    st.metric("Median Indie Price", f"${median_price:.2f}")
+    avg_price = compute_average_indie_price(filtered_df)
+    st.metric("Average Indie Price", f"${avg_price:.2f}")
 
 st.markdown("---")
 
@@ -198,7 +198,7 @@ fig_releases.update_traces(
 st.plotly_chart(fig_releases, use_container_width=True)
 
 
-# VISUALIZATION 2 — Most Common Genres (Stacked with Indie Overlay)
+# VISUALIZATION 2 — Most Common Genres (Default = All Games)
 st.subheader("Most Common Genres")
 
 # Compute genre stats
@@ -214,7 +214,9 @@ genre_stats = (
 
 # Compute non‑indie and percentages
 genre_stats["non_indie_games"] = genre_stats["total_games"] - genre_stats["indie_games"]
-genre_stats["indie_percentage"] = (genre_stats["indie_games"] / genre_stats["total_games"]) * 100
+genre_stats["indie_percentage"] = (
+    genre_stats["indie_games"] / genre_stats["total_games"] * 100
+)
 
 # Sort by total games
 genre_stats = genre_stats.sort_values("total_games", ascending=False)
@@ -223,13 +225,13 @@ show_indie_overlay = st.toggle("Show Indie Games Overlay")
 
 fig = go.Figure()
 
-# IMPORTANT: Add indie FIRST so it appears at the bottom of the stack
 if show_indie_overlay:
+    # ORANGE FIRST — Indie Games (bottom of stack)
     fig.add_trace(go.Bar(
         x=genre_stats.index,
         y=genre_stats["indie_games"],
         name="Indie Games",
-        marker_color="#f39c12",  # solid orange
+        marker_color="#f39c12",
         customdata=np.stack([
             genre_stats["total_games"],
             genre_stats["indie_games"],
@@ -245,32 +247,54 @@ if show_indie_overlay:
         )
     ))
 
-# Add non‑indie second so it stacks on top
-fig.add_trace(go.Bar(
-    x=genre_stats.index,
-    y=genre_stats["non_indie_games"],
-    name="Non‑Indie Games",
-    marker_color="#1f77b4",
-    customdata=np.stack([
-        genre_stats["total_games"],
-        genre_stats["indie_games"],
-        genre_stats["non_indie_games"],
-        genre_stats["indie_percentage"]
-    ], axis=-1),
-    hovertemplate=(
-        "<b>%{x}</b><br><br>"
-        "Total Games: %{customdata[0]}<br>"
-        "Indie Games: %{customdata[1]}<br>"
-        "Non‑Indie Games: %{customdata[2]}<br>"
-        "Indie %: %{customdata[3]:.1f}%<extra></extra>"
-    )
-))
+    # BLUE SECOND — Non‑Indie Games (top of stack)
+    fig.add_trace(go.Bar(
+        x=genre_stats.index,
+        y=genre_stats["non_indie_games"],
+        name="Non‑Indie Games",
+        marker_color="#1f77b4",
+        customdata=np.stack([
+            genre_stats["total_games"],
+            genre_stats["indie_games"],
+            genre_stats["non_indie_games"],
+            genre_stats["indie_percentage"]
+        ], axis=-1),
+        hovertemplate=(
+            "<b>%{x}</b><br><br>"
+            "Total Games: %{customdata[0]}<br>"
+            "Indie Games: %{customdata[1]}<br>"
+            "Non‑Indie Games: %{customdata[2]}<br>"
+            "Indie %: %{customdata[3]:.1f}%<extra></extra>"
+        )
+    ))
+
+else:
+    # DEFAULT VIEW — ALL GAMES (blue only)
+    fig.add_trace(go.Bar(
+        x=genre_stats.index,
+        y=genre_stats["total_games"],
+        name="All Games",
+        marker_color="#1f77b4",
+        customdata=np.stack([
+            genre_stats["total_games"],
+            genre_stats["indie_games"],
+            genre_stats["non_indie_games"],
+            genre_stats["indie_percentage"]
+        ], axis=-1),
+        hovertemplate=(
+            "<b>%{x}</b><br><br>"
+            "Total Games: %{customdata[0]}<br>"
+            "Indie Games: %{customdata[1]}<br>"
+            "Non‑Indie Games: %{customdata[2]}<br>"
+            "Indie %: %{customdata[3]:.1f}%<extra></extra>"
+        )
+    ))
 
 fig.update_layout(
     xaxis_title="Genre",
     yaxis_title="Number of Games",
     title="Most Common Genres",
-    barmode="stack",
+    barmode="stack" if show_indie_overlay else "group",
     height=600
 )
 
